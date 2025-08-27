@@ -3,19 +3,28 @@
   hosts: localhost
   connection: local
   gather_facts: yes
-  become: no  # Change to 'yes' if you need sudo
+  become: no
   
   vars:
     demo_dir: "/tmp/spacelift-demo"
     
   tasks:
+    - name: Debug all environment variables
+      debug:
+        msg: "{{ ansible_env }}"
+      
+    - name: Check specific variables from Terraform
+      debug:
+        msg: 
+          - "target_hosts env var: {{ ansible_env.target_hosts | default('NOT_FOUND') }}"
+          - "app_config env var: {{ ansible_env.app_config | default('NOT_FOUND') }}"
+          - "deployment_timestamp env var: {{ ansible_env.deployment_timestamp | default('NOT_FOUND') }}"
+
     - name: Display received configuration
       debug:
         msg: 
           - "Configuring host: {{ inventory_hostname }}"
-          - "App name: {{ app_name | default('not-provided') }}"
-          - "Version: {{ app_version | default('not-provided') }}"
-          - "Environment: {{ app_environment | default('not-provided') }}"
+          - "Received variables from Spacelift dependency"
     
     - name: Create demo directory
       file:
@@ -23,38 +32,34 @@
         state: directory
         mode: '0755'
     
-    - name: Create configuration file
+    - name: Create configuration file with received data
       copy:
         content: |
           # Spacelift Demo Configuration
-          App Name: {{ app_name | default('spacelift-demo') }}
-          Version: {{ app_version | default('1.0.0') }}
-          Environment: {{ app_environment | default('development') }}
+          Target Hosts: {{ ansible_env.target_hosts | default('not-received') }}
+          App Config: {{ ansible_env.app_config | default('not-received') }}
+          Deployment Timestamp: {{ ansible_env.deployment_timestamp | default('not-received') }}
           Configured At: {{ ansible_date_time.iso8601 }}
           Target Host: {{ inventory_hostname }}
-          OS: {{ ansible_os_family }}
+          OS Family: {{ ansible_os_family }}
+          Python Version: {{ ansible_python_version }}
         dest: "{{ demo_dir }}/config.txt"
         mode: '0644'
-    
-    - name: Install a simple package (if on Linux with package manager)
-      package:
-        name: curl
-        state: present
-      become: yes
-      when: ansible_os_family in ["Debian", "RedHat", "Suse"]
-      ignore_errors: yes  # In case no sudo access
     
     - name: Create success marker
       copy:
         content: |
-          SUCCESS: Ansible configuration completed
+          SUCCESS: Ansible configuration completed via Stack Dependencies v2
           Timestamp: {{ ansible_date_time.iso8601 }}
+          Host: {{ inventory_hostname }}
+          Spacelift Demo Complete
         dest: "{{ demo_dir }}/ansible-success.txt"
         mode: '0644'
     
     - name: Display completion message
       debug:
         msg: 
-          - "✅ Configuration completed successfully!"
-          - "📁 Check {{ demo_dir }}/ for created files"
-          - "🎯 Target: {{ inventory_hostname }}"
+          - "Configuration completed successfully!"
+          - "Check {{ demo_dir }}/ for created files"
+          - "Target: {{ inventory_hostname }}"
+          - "Spacelift Stack Dependencies v2 workflow complete"
