@@ -1,0 +1,60 @@
+---
+- name: Configure Localhost Demo
+  hosts: all
+  connection: local
+  gather_facts: yes
+  become: no  # Change to 'yes' if you need sudo
+  
+  vars:
+    demo_dir: "/tmp/spacelift-demo"
+    
+  tasks:
+    - name: Display received configuration
+      debug:
+        msg: 
+          - "Configuring host: {{ inventory_hostname }}"
+          - "App name: {{ app_name | default('not-provided') }}"
+          - "Version: {{ app_version | default('not-provided') }}"
+          - "Environment: {{ app_environment | default('not-provided') }}"
+    
+    - name: Create demo directory
+      file:
+        path: "{{ demo_dir }}"
+        state: directory
+        mode: '0755'
+    
+    - name: Create configuration file
+      copy:
+        content: |
+          # Spacelift Demo Configuration
+          App Name: {{ app_name | default('spacelift-demo') }}
+          Version: {{ app_version | default('1.0.0') }}
+          Environment: {{ app_environment | default('development') }}
+          Configured At: {{ ansible_date_time.iso8601 }}
+          Target Host: {{ inventory_hostname }}
+          OS: {{ ansible_os_family }}
+        dest: "{{ demo_dir }}/config.txt"
+        mode: '0644'
+    
+    - name: Install a simple package (if on Linux with package manager)
+      package:
+        name: curl
+        state: present
+      become: yes
+      when: ansible_os_family in ["Debian", "RedHat", "Suse"]
+      ignore_errors: yes  # In case no sudo access
+    
+    - name: Create success marker
+      copy:
+        content: |
+          SUCCESS: Ansible configuration completed
+          Timestamp: {{ ansible_date_time.iso8601 }}
+        dest: "{{ demo_dir }}/ansible-success.txt"
+        mode: '0644'
+    
+    - name: Display completion message
+      debug:
+        msg: 
+          - "✅ Configuration completed successfully!"
+          - "📁 Check {{ demo_dir }}/ for created files"
+          - "🎯 Target: {{ inventory_hostname }}"
