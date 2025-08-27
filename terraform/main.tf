@@ -16,7 +16,7 @@ locals {
   target_hosts = ["127.0.0.1"]
   config_data = {
     app_name = "spacelift-demo"
-    version  = "1.0.0"
+    version  = "1.0.2"
     environment = "development"
   }
 }
