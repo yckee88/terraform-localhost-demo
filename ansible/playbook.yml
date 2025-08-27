@@ -1,6 +1,6 @@
 ---
 - name: Configure Localhost Demo
-  hosts: all
+  hosts: localhost
   connection: local
   gather_facts: yes
   become: no  # Change to 'yes' if you need sudo
